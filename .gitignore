@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# Ansible
+*.retry
+
+# Secrets
+.env
+*.pem
+aws_credentials.yml
+
+# Terraform/Cloud (future safe)
+*.tfstate
+
+# OS
+.DS_Store

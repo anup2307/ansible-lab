@@ -1,0 +1,17 @@
+---
+- name: Create VPC in AWS
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Create VPC
+      amazon.aws.ec2_vpc_net:
+        name: ansible-vpc
+        cidr_block: 10.0.0.0/16
+        region: us-east-1
+        state: present
+      register: vpc_result
+
+    - name: Show VPC details
+      debug:
+        var: vpc_result
