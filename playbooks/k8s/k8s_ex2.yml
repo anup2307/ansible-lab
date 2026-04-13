@@ -1,0 +1,65 @@
+---
+- name: Kubernetes Exercise 2 - Modify existing resource
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    namespace_name: ex2-demo
+    configmap_name: ex2-config
+
+  tasks:
+    - name: Ensure namespace exists
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ namespace_name }}"
+
+    - name: Create initial ConfigMap with one key/value pair
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: "{{ configmap_name }}"
+            namespace: "{{ namespace_name }}"
+          data:
+            key1: value1
+
+    - name: Update ConfigMap with only the new key/value pair
+      kubernetes.core.k8s:
+        state: present
+        merge_type:
+          - merge
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: "{{ configmap_name }}"
+            namespace: "{{ namespace_name }}"
+          data:
+            key2: value2
+
+    - name: Query ConfigMap info
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: ConfigMap
+        name: "{{ configmap_name }}"
+        namespace: "{{ namespace_name }}"
+      register: configmap_info
+
+    - name: Show ConfigMap data
+      debug:
+        var: configmap_info.resources[0].data
+
+    - name: Verify ConfigMap contains both key/value pairs
+      assert:
+        that:
+          - configmap_info.resources[0].data.key1 == "value1"
+          - configmap_info.resources[0].data.key2 == "value2"
+        success_msg: "ConfigMap contains both key/value pairs."
+        fail_msg: "ConfigMap does not contain both expected key/value pairs."

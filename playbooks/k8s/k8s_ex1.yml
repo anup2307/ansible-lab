@@ -1,0 +1,64 @@
+---
+- name: Kubernetes Exercise1
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    namespace_name: ex1-demo
+    pod_name: ex1-pod
+
+  tasks:
+    - name: Creating namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ namespace_name }}"
+
+    - name: Create pod in namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: "{{ pod_name }}"
+            namespace: "{{ namespace_name }}"
+          spec:
+            containers:
+              - name: sleeper
+                image: busybox
+                command: ["sh", "-c", "sleep infinity"]
+
+    - name: Wait until pod is running
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        name: "{{ pod_name }}"
+        namespace: "{{ namespace_name }}"
+      register: pod_info
+      until: pod_info.resources[0].status.phase == "Running"
+      retries: 12
+      delay: 5
+
+    - name: Get pod info
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        name: "{{ pod_name }}"
+        namespace: "{{ namespace_name }}"
+      register: pod_info
+
+    - name: Show pod phase
+      debug:
+        msg: "Pod status is {{ pod_info.resources[0].status.phase }}"
+
+    - name: Delete namespace
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Namespace
+        name: "{{ namespace_name }}"
