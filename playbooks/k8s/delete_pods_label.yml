@@ -1,0 +1,31 @@
+---
+- name: deleteing Pods with Label selector
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: delete dev pods
+      kubernetes.core.k8s:
+        state: absent
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            namespace: ex2-demo
+        delete_all: true
+        label_selectors:
+            - environment=dev
+        wait: true
+
+    - name: Verify the pods are running
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: ex2-demo
+      register: pod_info
+
+    - name: Print only pod status
+      debug:
+        msg: "{{ item.metadata.name }} is {{ 'Running' if item.status.phase == 'Running' else 'Not Running' }}"
+      loop: "{{ pod_info.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"

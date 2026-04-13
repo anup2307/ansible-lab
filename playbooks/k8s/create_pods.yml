@@ -1,0 +1,57 @@
+---
+- name: Creating Pods
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Create Dev Pods
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: "{{ item }}"
+            namespace: ex2-demo
+            labels:
+              environment: dev
+          spec:
+            containers:
+              - name: nginx
+                image: nginx:1.14.2
+                ports:
+                  - containerPort: 80
+      loop:
+        - dev1
+        - dev2
+
+    - name: Create Prod Pod
+      kubernetes.core.k8s:
+        state: present
+        definition:
+           apiVersion: v1
+           kind: Pod
+           metadata:
+            name: prod
+            namespace: ex2-demo
+            labels:
+              environment: prod
+           spec:
+            containers:
+              - name: nginx
+                image: nginx:1.14.2
+                ports:
+                  - containerPort: 80
+
+    - name: Verify the pods are running
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: ex2-demo
+      register: pod_info
+
+    - name: Print only pod status
+      debug:
+        msg: "{{ item.metadata.name }} is {{ 'Running' if item.status.phase == 'Running' else 'Not Running' }}"
+      loop: "{{ pod_info.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
