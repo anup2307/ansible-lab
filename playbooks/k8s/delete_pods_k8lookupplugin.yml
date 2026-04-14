@@ -1,0 +1,46 @@
+---
+- name: Ex3 Step 5 - use k8s lookup plugin then delete
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    namespace: ex2-demo
+
+  tasks:
+   - name: select the pods to be deleted
+     set_fact:
+        pods_to_delete: "{{ query('kubernetes.core.k8s', api_version='v1', kind='Pod', namespace='ex2-demo', label_selectors=['environment=dev']) }}"
+
+   - name: show pods returned by lookup
+     debug:
+         msg: "{{ item.metadata.name }}"
+     loop: 
+       "{{ pods_to_delete }}"
+     when:
+        - item.metadata.labels is defined
+        - item.metadata.labels.environment is defined
+        - item.metadata.labels.environment == 'dev'
+   - name: Delete dev pods returned by k8s lookup
+     kubernetes.core.k8s:
+        api_version: v1
+        kind: Pod
+        name: "{{ item.metadata.name }}"
+        namespace: "{{ item.metadata.namespace }}"
+        state: absent
+     loop: >-
+        {{
+          query(
+            'kubernetes.core.k8s',
+            api_version='v1',
+            kind='Pod',
+            namespace=namespace,
+            label_selectors=['environment=dev']
+          )
+        }}
+     loop_control:
+        label: "{{ item.metadata.name }}"
+     when:
+       - item.metadata.labels is defined
+       - item.metadata.labels.environment is defined
+       - item.metadata.labels.environment == 'dev'

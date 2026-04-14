@@ -1,0 +1,29 @@
+---
+- name: Ex3 Step 4 - use k8s_info then delete
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    namespace: ex2-demo
+
+  tasks:
+    - name: Get dev pods
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors:
+          - environment=dev
+      register: dev_pods
+
+    - name: Delete dev pods returned by k8s_info
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Pod
+        name: "{{ item.metadata.name }}"
+        namespace: "{{ item.metadata.namespace }}"
+        state: absent
+      loop: "{{ dev_pods.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
